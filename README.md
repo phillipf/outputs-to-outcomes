@@ -19,8 +19,8 @@ Personal-use Outcome & Output Framework app.
 - M5 Weekly review + reflections: completed
 - M6 Metrics + charts: completed
 - M7 Settings + reminders + data purge: completed
-- M8 Skills mastery layer: in progress
-- M9 Tests/performance hardening: in progress
+- M8 Skills mastery layer: completed
+- M9 Tests/performance hardening: completed
 
 ## Local Setup
 

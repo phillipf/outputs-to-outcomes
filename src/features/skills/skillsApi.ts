@@ -171,7 +171,7 @@ export async function fetchSkillById(skillId: string): Promise<SkillItemRow> {
     .single()
 
   if (error) {
-    throw toSkillMutationError(error)
+    throw new Error(error.message)
   }
 
   return requireData(data as SkillItemRow | null, 'Skill item not found')
@@ -185,7 +185,7 @@ export async function fetchSkillLogsForSkill(skillId: string): Promise<SkillLogR
     .order('logged_at', { ascending: false })
 
   if (error) {
-    throw toSkillMutationError(error)
+    throw new Error(error.message)
   }
 
   return (data ?? []) as SkillLogRow[]
@@ -283,7 +283,7 @@ export async function createSkillItem(input: SkillDraftInput): Promise<SkillItem
     .single()
 
   if (error) {
-    throw new Error(error.message)
+    throw toSkillMutationError(error)
   }
 
   return requireData(data as SkillItemRow | null, 'Skill item was not returned')
@@ -314,7 +314,7 @@ export async function updateSkillItem(
     .single()
 
   if (error) {
-    throw new Error(error.message)
+    throw toSkillMutationError(error)
   }
 
   return requireData(data as SkillItemRow | null, 'Updated skill item was not returned')
