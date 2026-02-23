@@ -76,7 +76,7 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ### 12. Hard-delete or soft-delete only?
 
-**Soft-delete only (archive/retire).** You're the only user so there's no privacy reason to hard-delete, and you'll regret losing historical data. Add a `deleted_at` timestamp column to relevant tables and filter on `deleted_at IS NULL` in all queries. If you really want to nuke something, a "purge archived items" utility in settings is fine — and it keeps your Supabase free-tier 500MB allocation clean — but don't make hard-delete the default flow.
+**Soft-delete via status states only — no `deleted_at` column.** The `archived`/`retired` statuses already serve as soft-delete. Adding a separate `deleted_at` column creates confusing overlap ("is it retired AND deleted?"). Hide `archived`/`retired` items from active views. If you ever want to permanently reclaim space, a "purge retired items" action in settings performs actual `DELETE` from Postgres — this is rare, intentional, and doesn't need its own soft-delete layer.
 
 ### 13. Is Starter Mode rule-based or AI-generated?
 
@@ -104,7 +104,7 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ### 19. If an output is unscheduled for a day, does it impact streaks/completion?
 
-**No.** Unscheduled days are invisible to the streak and completion calculations. Only scheduled occurrences count. This is critical for "3x/week" outputs where the user picks which days — non-chosen days must not penalize them.
+**No.** Unscheduled days are invisible to the streak and completion calculations. Only scheduled occurrences count. For fixed-day outputs (e.g., Mon/Wed/Fri), non-selected days don't penalize. For flexible X/week outputs, streaks count consecutive weeks where the target was met rather than individual days.
 
 ### 20. Are notes plain text only? Length limit?
 
@@ -128,7 +128,7 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ### 24. Is the chart overlay purely visual, or should we compute correlation?
 
-**Visual only for v1.** Overlaying the output completion bars on the metric line chart is already highly informative. Computing correlation scores sounds cool but requires statistical rigor (sample size, confounders) that's hard to get right and easy to get misleadingly wrong. If you want it later, add a simple Pearson correlation coefficient as a tooltip, clearly labeled as rough/indicative.
+**Overlay is v1.1. Standalone metric charts ship in v1; visual overlay of output completion on metric charts ships in v1.1.** You need weeks of data before overlay patterns are visible, so there's no loss deferring it. When built, keep it visual only — computing correlation scores requires statistical rigor (sample size, confounders) that's hard to get right and easy to get misleadingly wrong. If you want correlation later, add a simple Pearson coefficient as a tooltip, clearly labeled as rough/indicative.
 
 ### 25. What exact rule defines "plateau"?
 
@@ -144,7 +144,7 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ### 27. What intervals beyond weekly?
 
-**Weekly and monthly for v1.** Biweekly is awkward to schedule (which week?), and custom intervals add UI complexity for marginal value. Weekly is the core loop; monthly gives a longer-horizon reflection point. Add biweekly/custom only if you feel the need after using it.
+**Weekly only for v1.** Monthly reflection is a v1.1 addition — you need a month of data before it's useful, so building it at launch is premature. Biweekly is awkward to schedule (which week?), and custom intervals add UI complexity for marginal value. Weekly is the core loop and all you need to start. Add monthly and biweekly/custom only once you've been using the app and feel the need.
 
 ### 28. Are context-aware prompts required in v1?
 
@@ -188,7 +188,7 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ### 35. Should v1 support JSON, CSV, markdown, and PDF export?
 
-**JSON export in v1, but it's now a "nice to have" rather than critical.** Your data lives in Supabase's Postgres and is backed up automatically (Supabase free tier includes daily backups with 7-day retention). JSON export is no longer your only backup lifeline. Still worth building — it's a single Supabase RPC that selects all your data and serializes to JSON — but don't block v1 launch on it. CSV, markdown, and PDF are all post-MVP.
+**v1.1.** Your data lives in Supabase's Postgres and is backed up automatically (Supabase free tier includes daily backups with 7-day retention). JSON export is no longer a safety net — it's a convenience feature. Still worth building (it's a single Supabase RPC that selects all your data and serializes to JSON), but don't let it delay v1 launch. CSV, markdown, and PDF are all post-v1.1.
 
 ### 36. Offline sync conflict resolution?
 
@@ -214,27 +214,27 @@ Paused outputs don't appear on the daily dashboard and don't affect streaks or c
 
 ## Summary: What v1 Actually Looks Like
 
-A single-page web app (React or Svelte, your pick) backed by **Supabase** (Postgres + Auth + RLS) and deployed to **Cloudflare Pages**. Zero monthly cost. Cross-device access from day one via magic link auth.
+A single-page web app deployed to **Cloudflare Pages**, backed by **Supabase** (Postgres + Auth + RLS). Zero monthly cost. Cross-device access from day one via magic link auth.
 
-**Stack:**
-- **Frontend:** SPA with PWA manifest, deployed to Cloudflare Pages
+**Locked Stack:**
+- **Frontend:** React + TypeScript + Vite, PWA manifest, deployed to Cloudflare Pages
 - **Backend:** Supabase free tier (Postgres, Auth, RLS, edge functions)
-- **Auth:** Magic link (passwordless email) via Supabase Auth
-- **Data:** All tables protected by RLS (`auth.uid() = user_id`)
+- **Auth:** Magic link (passwordless email) via Supabase Auth, sign-ups disabled, single allowlisted email
+- **Data:** All tables include `user_id`, protected by RLS (`auth.uid() = user_id`)
 
 **v1 ships with:**
 - Supabase Auth (magic link) + RLS on all tables
 - Outcome CRUD (active/archived/retired)
-- Output CRUD with frequency scheduling (daily, X/week, custom days)
+- Output CRUD with frequency scheduling (daily, flexible X/week, fixed days/week)
 - Starter mode (rule-based, first output only)
-- Daily dashboard with completion logging and notes
-- Basic numeric metrics with line charts
-- Weekly review grid (green/red/yellow)
-- Shortfall tagging (fixed taxonomy)
+- Daily dashboard with completion logging, partial completion, and notes
+- Basic numeric metrics with standalone line charts
+- Weekly review grid (green/yellow/red/grey)
+- Shortfall tagging (fixed taxonomy, per occurrence, includes partials)
 - Weekly reflection prompts (3 defaults)
 - Browser/PWA notifications
 - Start-of-week setting
-- Data deletion workflow
+- Data + account deletion workflow
 
 **v1.1 adds:**
 - JSON export/import
